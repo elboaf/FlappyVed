@@ -1,0 +1,632 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VEDMAC Cruiser - Side Profile Asset</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            background: #0a0a12;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            font-family: 'Courier New', monospace;
+            color: #8888aa;
+        }
+        h1 {
+            color: #cc4444;
+            text-transform: uppercase;
+            letter-spacing: 4px;
+            margin-bottom: 5px;
+        }
+        .subtitle {
+            color: #555577;
+            margin-bottom: 20px;
+            font-size: 12px;
+        }
+        canvas {
+            border: 1px solid #222244;
+            background: transparent;
+        }
+        .controls {
+            margin-top: 20px;
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        button {
+            background: #1a1a2e;
+            color: #cc4444;
+            border: 1px solid #333355;
+            padding: 8px 16px;
+            cursor: pointer;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        button:hover {
+            background: #2a2a4e;
+            border-color: #cc4444;
+        }
+        .info {
+            margin-top: 15px;
+            font-size: 11px;
+            color: #555577;
+            text-align: center;
+            max-width: 700px;
+            line-height: 1.6;
+        }
+        .size-info {
+            margin-top: 10px;
+            font-size: 11px;
+            color: #444466;
+        }
+    </style>
+</head>
+<body>
+    <h1>VEDMAC Cruiser</h1>
+    <div class="subtitle">Triglavian Collective • Svarog Clade • Precursor Cruiser</div>
+    
+    <canvas id="vedmakCanvas" width="1024" height="512"></canvas>
+    
+    <div class="controls">
+        <button onclick="downloadPNG()">Download PNG</button>
+        <button onclick="downloadPNGSmall()">Download Small (256px)</button>
+        <button onclick="toggleAnimation()">Toggle Animation</button>
+        <button onclick="toggleEngineGlow()">Toggle Engine Glow</button>
+        <button onclick="toggleCoreGlow()">Toggle Core Glow</button>
+    </div>
+    
+    <div class="size-info">
+        Main canvas: 1024x512px • Small export: 256x128px
+    </div>
+    
+    <div class="info">
+        VEDMAC Cruiser Side Profile Asset • Based on EVE Online Triglavian Collective design by CCP Games<br>
+        Dark hull with red entropic core glow and blue engine exhaust
+    </div>
+
+    <script>
+        const canvas = document.getElementById('vedmakCanvas');
+        const ctx = canvas.getContext('2d');
+        
+        let animationEnabled = false;
+        let engineGlowEnabled = true;
+        let coreGlowEnabled = true;
+        let time = 0;
+        
+        // Accurate Triglavian color palette - DARK hull
+        const colors = {
+            hull: '#1a1a1e',
+            hullLight: '#2a2a30',
+            hullDark: '#0a0a0e',
+            hullHighlight: '#3a3a42',
+            accent: '#2a2a30',
+            redGlow: '#cc2200',
+            redCore: '#ff4422',
+            redBright: '#ff6644',
+            redPulse: '#ff3311',
+            blueExhaust: '#2266cc',
+            blueBright: '#4488ff',
+            blueCore: '#66aaff',
+            blueGlow: '#3377dd',
+            detail: '#0e0e12',
+            metal: '#222228',
+            darkMetal: '#0e0e12',
+            weapon: '#2a2a30',
+            panelLine: '#121216',
+            marking: '#444450'
+        };
+        
+        function drawVedmak() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            const centerX = canvas.width / 2;
+            const centerY = canvas.height / 2;
+            
+            ctx.save();
+            ctx.translate(centerX, centerY);
+            
+            if (animationEnabled) {
+                const bobY = Math.sin(time * 0.5) * 3;
+                ctx.translate(0, bobY);
+            }
+            
+            drawSideProfile();
+            
+            ctx.restore();
+        }
+        
+        function drawSideProfile() {
+            // Scale factor - elongated ship
+            const scale = 1.0;
+            
+            // ===== MAIN HULL (elongated, dark, blade-like) =====
+            // The Vedmak is VERY elongated - long and narrow
+            ctx.beginPath();
+            // Nose (front/left) - pointed
+            ctx.moveTo(-380, 0);
+            // Upper hull - slight upward curve then flat
+            ctx.lineTo(-340, -8);
+            ctx.lineTo(-280, -14);
+            ctx.lineTo(-180, -18);
+            ctx.lineTo(-80, -20);
+            ctx.lineTo(40, -20);
+            ctx.lineTo(120, -18);
+            ctx.lineTo(180, -14);
+            // Upper rear section - curves up to engine
+            ctx.lineTo(220, -10);
+            ctx.lineTo(240, -5);
+            // Engine section top
+            ctx.lineTo(260, -8);
+            ctx.lineTo(280, -25);
+            ctx.lineTo(300, -45);
+            ctx.lineTo(310, -65);
+            ctx.lineTo(305, -75);
+            // Engine top ridge
+            ctx.lineTo(290, -70);
+            ctx.lineTo(270, -55);
+            ctx.lineTo(250, -40);
+            ctx.lineTo(240, -30);
+            // Lower rear section
+            ctx.lineTo(220, -15);
+            ctx.lineTo(180, -10);
+            ctx.lineTo(120, -8);
+            // Lower hull - flat then curves to nose
+            ctx.lineTo(40, -6);
+            ctx.lineTo(-80, -6);
+            ctx.lineTo(-180, -8);
+            ctx.lineTo(-280, -12);
+            ctx.lineTo(-340, -8);
+            // Nose bottom
+            ctx.lineTo(-380, 0);
+            // Lower nose
+            ctx.lineTo(-340, 8);
+            ctx.lineTo(-280, 14);
+            ctx.lineTo(-180, 18);
+            ctx.lineTo(-80, 20);
+            ctx.lineTo(40, 20);
+            ctx.lineTo(120, 18);
+            ctx.lineTo(180, 14);
+            ctx.lineTo(220, 10);
+            ctx.lineTo(240, 5);
+            // Engine section bottom
+            ctx.lineTo(260, 8);
+            ctx.lineTo(280, 25);
+            ctx.lineTo(300, 45);
+            ctx.lineTo(310, 65);
+            ctx.lineTo(305, 75);
+            // Engine bottom ridge
+            ctx.lineTo(290, 70);
+            ctx.lineTo(270, 55);
+            ctx.lineTo(250, 40);
+            ctx.lineTo(240, 30);
+            ctx.lineTo(220, 15);
+            ctx.lineTo(180, 10);
+            ctx.lineTo(120, 8);
+            ctx.lineTo(40, 6);
+            ctx.lineTo(-80, 6);
+            ctx.lineTo(-180, 8);
+            ctx.lineTo(-280, 12);
+            ctx.lineTo(-340, 8);
+            ctx.closePath();
+            
+            // Hull gradient - very dark, almost black
+            const hullGrad = ctx.createLinearGradient(0, -75, 0, 75);
+            hullGrad.addColorStop(0, colors.hullLight);
+            hullGrad.addColorStop(0.15, colors.hull);
+            hullGrad.addColorStop(0.5, colors.hullDark);
+            hullGrad.addColorStop(0.85, colors.hull);
+            hullGrad.addColorStop(1, colors.hullLight);
+            ctx.fillStyle = hullGrad;
+            ctx.fill();
+            ctx.strokeStyle = colors.panelLine;
+            ctx.lineWidth = 1;
+            ctx.stroke();
+            
+            // ===== UPPER STRUCTURE (raised section on top) =====
+            ctx.beginPath();
+            ctx.moveTo(-120, -20);
+            ctx.lineTo(-100, -35);
+            ctx.lineTo(-60, -42);
+            ctx.lineTo(20, -44);
+            ctx.lineTo(80, -40);
+            ctx.lineTo(120, -32);
+            ctx.lineTo(140, -25);
+            ctx.lineTo(140, -20);
+            ctx.lineTo(-120, -20);
+            ctx.closePath();
+            
+            const upperGrad = ctx.createLinearGradient(0, -44, 0, -20);
+            upperGrad.addColorStop(0, colors.hullHighlight);
+            upperGrad.addColorStop(0.5, colors.hull);
+            upperGrad.addColorStop(1, colors.hullDark);
+            ctx.fillStyle = upperGrad;
+            ctx.fill();
+            ctx.strokeStyle = colors.panelLine;
+            ctx.stroke();
+            
+            // Upper structure details - panel lines
+            ctx.strokeStyle = colors.panelLine;
+            ctx.lineWidth = 0.5;
+            for (let x = -100; x < 130; x += 25) {
+                ctx.beginPath();
+                ctx.moveTo(x, -38);
+                ctx.lineTo(x, -22);
+                ctx.stroke();
+            }
+            
+            // ===== RED GLOWING PANELS along upper hull =====
+            // These are the distinctive Triglavian red accent lights
+            if (coreGlowEnabled) {
+                const redPulse = 0.7 + Math.sin(time * 2) * 0.3;
+                
+                // Panel 1
+                ctx.shadowColor = colors.redGlow;
+                ctx.shadowBlur = 15 * redPulse;
+                ctx.beginPath();
+                ctx.moveTo(-80, -22);
+                ctx.lineTo(-65, -38);
+                ctx.lineTo(-50, -40);
+                ctx.lineTo(-45, -22);
+                ctx.closePath();
+                const redGrad1 = ctx.createLinearGradient(-65, -40, -65, -22);
+                redGrad1.addColorStop(0, `rgba(255, 68, 34, ${0.9 * redPulse})`);
+                redGrad1.addColorStop(1, `rgba(204, 34, 0, ${0.6 * redPulse})`);
+                ctx.fillStyle = redGrad1;
+                ctx.fill();
+                
+                // Panel 2
+                ctx.beginPath();
+                ctx.moveTo(-30, -22);
+                ctx.lineTo(-15, -42);
+                ctx.lineTo(0, -43);
+                ctx.lineTo(5, -22);
+                ctx.closePath();
+                const redGrad2 = ctx.createLinearGradient(-15, -43, -15, -22);
+                redGrad2.addColorStop(0, `rgba(255, 68, 34, ${0.85 * redPulse})`);
+                redGrad2.addColorStop(1, `rgba(204, 34, 0, ${0.55 * redPulse})`);
+                ctx.fillStyle = redGrad2;
+                ctx.fill();
+                
+                // Panel 3
+                ctx.beginPath();
+                ctx.lineTo(50, -40);
+                ctx.lineTo(65, -38);
+                ctx.lineTo(70, -22);
+                ctx.closePath();
+                const redGrad3 = ctx.createLinearGradient(50, -40, 65, -22);
+                redGrad3.addColorStop(0, `rgba(255, 68, 34, ${0.8 * redPulse})`);
+                redGrad3.addColorStop(1, `rgba(204, 34, 0, ${0.5 * redPulse})`);
+                ctx.fillStyle = redGrad3;
+                ctx.fill();
+                
+                ctx.shadowBlur = 0;
+            }
+            
+            // ===== CENTRAL RED ENTROPIC CORE (glowing orb in middle) =====
+            if (coreGlowEnabled) {
+                const corePulse = 0.6 + Math.sin(time * 1.5) * 0.4;
+                
+                // Outer glow
+                ctx.shadowColor = colors.redGlow;
+                ctx.shadowBlur = 40 * corePulse;
+                
+                // Core glow circle
+                ctx.beginPath();
+                ctx.arc(0, 0, 25, 0, Math.PI * 2);
+                const coreGrad = ctx.createRadialGradient(0, 0, 0, 0, 0, 25);
+                coreGrad.addColorStop(0, `rgba(255, 100, 60, ${0.9 * corePulse})`);
+                coreGrad.addColorStop(0.3, `rgba(255, 50, 20, ${0.7 * corePulse})`);
+                coreGrad.addColorStop(0.6, `rgba(204, 30, 0, ${0.4 * corePulse})`);
+                coreGrad.addColorStop(1, `rgba(150, 20, 0, 0)`);
+                ctx.fillStyle = coreGrad;
+                ctx.fill();
+                
+                ctx.shadowBlur = 0;
+                
+                // Core inner bright point
+                ctx.beginPath();
+                ctx.arc(0, 0, 8, 0, Math.PI * 2);
+                const innerCoreGrad = ctx.createRadialGradient(0, 0, 0, 0, 0, 8);
+                innerCoreGrad.addColorStop(0, `rgba(255, 180, 140, ${0.95 * corePulse})`);
+                innerCoreGrad.addColorStop(0.5, `rgba(255, 80, 40, ${0.8 * corePulse})`);
+                innerCoreGrad.addColorStop(1, `rgba(200, 40, 10, ${0.5 * corePulse})`);
+                ctx.fillStyle = innerCoreGrad;
+                ctx.fill();
+                
+                // Core ring
+                ctx.beginPath();
+                ctx.arc(0, 0, 15, 0, Math.PI * 2);
+                ctx.strokeStyle = `rgba(255, 60, 30, ${0.5 * corePulse})`;
+                ctx.lineWidth = 2;
+                ctx.stroke();
+            }
+            
+            // ===== ENGINE SECTION (rear, with blue exhaust) =====
+            // Engine housing structure
+            ctx.beginPath();
+            ctx.moveTo(240, -30);
+            ctx.lineTo(270, -55);
+            ctx.lineTo(290, -70);
+            ctx.lineTo(300, -75);
+            ctx.lineTo(310, -65);
+            ctx.lineTo(315, -40);
+            ctx.lineTo(315, 40);
+            ctx.lineTo(310, 65);
+            ctx.lineTo(300, 75);
+            ctx.lineTo(290, 70);
+            ctx.lineTo(270, 55);
+            ctx.lineTo(240, 30);
+            ctx.closePath();
+            
+            const engineGrad = ctx.createLinearGradient(240, -75, 240, 75);
+            engineGrad.addColorStop(0, colors.metal);
+            engineGrad.addColorStop(0.3, colors.hull);
+            engineGrad.addColorStop(0.7, colors.hullDark);
+            engineGrad.addColorStop(1, colors.metal);
+            ctx.fillStyle = engineGrad;
+            ctx.fill();
+            ctx.strokeStyle = colors.panelLine;
+            ctx.lineWidth = 1;
+            ctx.stroke();
+            
+            // Engine detail lines
+            ctx.strokeStyle = colors.panelLine;
+            ctx.lineWidth = 0.5;
+            ctx.beginPath();
+            ctx.moveTo(260, -50);
+            ctx.lineTo(260, 50);
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.moveTo(280, -60);
+            ctx.lineTo(280, 60);
+            ctx.stroke();
+            
+            // ===== BLUE ENGINE EXHAUST (back of ship) =====
+            if (engineGlowEnabled) {
+                const exhaustPulse = 0.5 + Math.sin(time * 4) * 0.5;
+                
+                // Main exhaust glow
+                ctx.shadowColor = colors.blueExhaust;
+                ctx.shadowBlur = 30 * exhaustPulse;
+                
+                // Upper exhaust
+                ctx.beginPath();
+                ctx.moveTo(310, -60);
+                ctx.lineTo(340, -50);
+                ctx.lineTo(360, -35);
+                ctx.lineTo(350, -20);
+                ctx.lineTo(310, -30);
+                ctx.closePath();
+                const exhaustGrad1 = ctx.createLinearGradient(310, -60, 360, -35);
+                exhaustGrad1.addColorStop(0, `rgba(68, 136, 255, ${0.8 * exhaustPulse})`);
+                exhaustGrad1.addColorStop(0.5, `rgba(51, 119, 221, ${0.5 * exhaustPulse})`);
+                exhaustGrad1.addColorStop(1, `rgba(34, 102, 204, 0)`);
+                ctx.fillStyle = exhaustGrad1;
+                ctx.fill();
+                
+                // Lower exhaust
+                ctx.beginPath();
+                ctx.moveTo(310, 60);
+                ctx.lineTo(340, 50);
+                ctx.lineTo(360, 35);
+                ctx.lineTo(350, 20);
+                ctx.lineTo(310, 30);
+                ctx.closePath();
+                const exhaustGrad2 = ctx.createLinearGradient(310, 60, 360, 35);
+                exhaustGrad2.addColorStop(0, `rgba(68, 136, 255, ${0.8 * exhaustPulse})`);
+                exhaustGrad2.addColorStop(0.5, `rgba(51, 119, 221, ${0.5 * exhaustPulse})`);
+                exhaustGrad2.addColorStop(1, `rgba(34, 102, 204, 0)`);
+                ctx.fillStyle = exhaustGrad2;
+                ctx.fill();
+                
+                // Center exhaust (between upper and lower)
+                ctx.beginPath();
+                ctx.moveTo(310, -25);
+                ctx.lineTo(350, -15);
+                ctx.lineTo(370, 0);
+                ctx.lineTo(350, 15);
+                ctx.lineTo(310, 25);
+                ctx.closePath();
+                const exhaustGrad3 = ctx.createLinearGradient(310, -25, 370, 0);
+                exhaustGrad3.addColorStop(0, `rgba(102, 170, 255, ${0.7 * exhaustPulse})`);
+                exhaustGrad3.addColorStop(0.5, `rgba(68, 136, 255, ${0.4 * exhaustPulse})`);
+                exhaustGrad3.addColorStop(1, `rgba(34, 102, 204, 0)`);
+                ctx.fillStyle = exhaustGrad3;
+                ctx.fill();
+                
+                ctx.shadowBlur = 0;
+                
+                // Exhaust particles (small dots trailing back)
+                for (let i = 0; i < 8; i++) {
+                    const px = 320 + i * 12 + Math.sin(time * 3 + i) * 3;
+                    const py = (Math.sin(time * 2 + i * 0.7) * 15);
+                    const size = 2 - i * 0.2;
+                    const alpha = (1 - i / 8) * 0.5 * exhaustPulse;
+                    
+                    ctx.beginPath();
+                    ctx.arc(px, py, size, 0, Math.PI * 2);
+                    ctx.fillStyle = `rgba(100, 160, 255, ${alpha})`;
+                    ctx.fill();
+                }
+            }
+            
+            // ===== WEAPON MOUNT (Entropic Disintegrator - front top) =====
+            ctx.beginPath();
+            ctx.moveTo(-200, -18);
+            ctx.lineTo(-180, -28);
+            ctx.lineTo(-160, -30);
+            ctx.lineTo(-150, -25);
+            ctx.lineTo(-145, -18);
+            ctx.lineTo(-145, -14);
+            ctx.lineTo(-150, -10);
+            ctx.lineTo(-160, -8);
+            ctx.lineTo(-180, -10);
+            ctx.lineTo(-200, -14);
+            ctx.closePath();
+            ctx.fillStyle = colors.weapon;
+            ctx.fill();
+            ctx.strokeStyle = colors.panelLine;
+            ctx.lineWidth = 0.5;
+            ctx.stroke();
+            
+            // Weapon barrel
+            ctx.beginPath();
+            ctx.moveTo(-200, -16);
+            ctx.lineTo(-230, -18);
+            ctx.lineTo(-240, -16);
+            ctx.lineTo(-235, -12);
+            ctx.lineTo(-200, -10);
+            ctx.closePath();
+            ctx.fillStyle = colors.darkMetal;
+            ctx.fill();
+            ctx.stroke();
+            
+            // ===== HULL PANEL LINES =====
+            ctx.strokeStyle = colors.panelLine;
+            ctx.lineWidth = 0.5;
+            
+            // Horizontal panel lines along hull
+            for (let y = -15; y <= 15; y += 10) {
+                ctx.beginPath();
+                ctx.moveTo(-300, y);
+                ctx.lineTo(200, y * 0.5);
+                ctx.stroke();
+            }
+            
+            // Vertical panel lines
+            for (let x = -280; x < 200; x += 40) {
+                ctx.beginPath();
+                ctx.moveTo(x, -18);
+                ctx.lineTo(x, 18);
+                ctx.stroke();
+            }
+            
+            // ===== TRIGLAVIAN MARKINGS =====
+            ctx.fillStyle = colors.marking;
+            ctx.font = 'bold 10px Courier New';
+            ctx.fillText('SVAROG', -150, -48);
+            
+            // ===== NOSE CONE DETAIL =====
+            ctx.beginPath();
+            ctx.moveTo(-380, 0);
+            ctx.lineTo(-360, -5);
+            ctx.lineTo(-350, 0);
+            ctx.lineTo(-360, 5);
+            ctx.closePath();
+            ctx.fillStyle = colors.hullHighlight;
+            ctx.fill();
+            ctx.strokeStyle = colors.panelLine;
+            ctx.stroke();
+            
+            // ===== UNDERBELLY DETAIL =====
+            ctx.beginPath();
+            ctx.moveTo(-100, 20);
+            ctx.lineTo(-50, 25);
+            ctx.lineTo(50, 25);
+            ctx.lineTo(100, 22);
+            ctx.lineTo(120, 18);
+            ctx.lineTo(100, 16);
+            ctx.lineTo(50, 18);
+            ctx.lineTo(-50, 18);
+            ctx.lineTo(-100, 16);
+            ctx.closePath();
+            ctx.fillStyle = colors.hullDark;
+            ctx.fill();
+            ctx.strokeStyle = colors.panelLine;
+            ctx.lineWidth = 0.5;
+            ctx.stroke();
+            
+            // ===== REAR THRUSTER NOZZLES =====
+            // Upper thruster
+            ctx.beginPath();
+            ctx.moveTo(295, -65);
+            ctx.lineTo(305, -72);
+            ctx.lineTo(312, -68);
+            ctx.lineTo(308, -58);
+            ctx.closePath();
+            ctx.fillStyle = colors.darkMetal;
+            ctx.fill();
+            ctx.strokeStyle = colors.panelLine;
+            ctx.stroke();
+            
+            // Lower thruster
+            ctx.beginPath();
+            ctx.moveTo(295, 65);
+            ctx.lineTo(305, 72);
+            ctx.lineTo(312, 68);
+            ctx.lineTo(308, 58);
+            ctx.closePath();
+            ctx.fillStyle = colors.darkMetal;
+            ctx.fill();
+            ctx.strokeStyle = colors.panelLine;
+            ctx.stroke();
+            
+            // ===== DRONE BAY INDICATORS (rear hull) =====
+            ctx.fillStyle = colors.hullDark;
+            ctx.fillRect(150, -12, 20, 24);
+            ctx.strokeStyle = colors.panelLine;
+            ctx.lineWidth = 0.5;
+            ctx.strokeRect(150, -12, 20, 24);
+            
+            // ===== SUBTLE HULL REFLECTIONS =====
+            ctx.beginPath();
+            ctx.moveTo(-200, -18);
+            ctx.lineTo(100, -20);
+            ctx.lineTo(150, -16);
+            ctx.lineTo(100, -14);
+            ctx.lineTo(-200, -12);
+            ctx.closePath();
+            ctx.fillStyle = 'rgba(60, 60, 70, 0.15)';
+            ctx.fill();
+        }
+        
+        function animate() {
+            time += 0.016;
+            drawVedmak();
+            requestAnimationFrame(animate);
+        }
+        
+        function downloadPNG() {
+            const link = document.createElement('a');
+            link.download = 'vedmak_cruiser_1024x512.png';
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+        }
+        
+        function downloadPNGSmall() {
+            // Create a smaller version at 256x128
+            const tempCanvas = document.createElement('canvas');
+            tempCanvas.width = 256;
+            tempCanvas.height = 128;
+            const tempCtx = tempCanvas.getContext('2d');
+            tempCtx.drawImage(canvas, 0, 0, 256, 128);
+            
+            const link = document.createElement('a');
+            link.download = 'vedmak_cruiser_256x128.png';
+            link.href = tempCanvas.toDataURL('image/png');
+            link.click();
+        }
+        
+        function toggleAnimation() {
+            animationEnabled = !animationEnabled;
+        }
+        
+        function toggleEngineGlow() {
+            engineGlowEnabled = !engineGlowEnabled;
+        }
+        
+        function toggleCoreGlow() {
+            coreGlowEnabled = !coreGlowEnabled;
+        }
+        
+        // Start animation loop
+        animate();
+    </script>
+</body>
+</html>

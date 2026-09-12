@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>C2 Wormhole - EVE Online Asset</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            background: #0a0a12;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            font-family: 'Courier New', monospace;
+            color: #8888aa;
+        }
+        h1 {
+            color: #aa8866;
+            text-transform: uppercase;
+            letter-spacing: 4px;
+            margin-bottom: 5px;
+        }
+        .subtitle {
+            color: #555577;
+            margin-bottom: 20px;
+            font-size: 12px;
+        }
+        canvas {
+            border: 1px solid #222244;
+            background: transparent;
+        }
+        .controls {
+            margin-top: 20px;
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        button {
+            background: #1a1a2e;
+            color: #aa8866;
+            border: 1px solid #333355;
+            padding: 8px 16px;
+            cursor: pointer;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        button:hover {
+            background: #2a2a4e;
+            border-color: #aa8866;
+        }
+        .info {
+            margin-top: 15px;
+            font-size: 11px;
+            color: #555577;
+            text-align: center;
+            max-width: 700px;
+            line-height: 1.6;
+        }
+    </style>
+</head>
+<body>
+    <h1>C2 Wormhole</h1>
+    <div class="subtitle">Class 2 • Unknown Space • Teal Aura</div>
+    
+    <canvas id="wormholeCanvas" width="512" height="512"></canvas>
+    
+    <div class="controls">
+        <button onclick="downloadPNG()">Download PNG</button>
+        <button onclick="toggleAnimation()">Toggle Animation</button>
+    </div>
+    
+    <div class="info">
+        C2 Wormhole Asset • Based on EVE Online visual identification<br>
+        Mostly black and white, well-defined black lens in center, brownish hue with gray clouds
+    </div>
+
+    <script>
+        const canvas = document.getElementById('wormholeCanvas');
+        const ctx = canvas.getContext('2d');
+        
+        let animationEnabled = true;
+        let time = 0;
+        
+        function drawC2Wormhole() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            const centerX = canvas.width / 2;
+            const centerY = canvas.height / 2;
+            
+            ctx.save();
+            ctx.translate(centerX, centerY);
+            
+            // Draw C2 wormhole characteristics:
+            // - Mostly black and white
+            // - Well-defined black lens (or nebula) in the center
+            // - Brownish hue with gray clouds
+            // - Black spot in the light gray cloud
+            // - Teal aura
+            
+            // Outer teal aura
+            const auraGrad = ctx.createRadialGradient(0, 0, 80, 0, 0, 256);
+            auraGrad.addColorStop(0, 'rgba(0, 180, 180, 0.3)');
+            auraGrad.addColorStop(0.5, 'rgba(0, 150, 160, 0.15)');
+            auraGrad.addColorStop(1, 'rgba(0, 120, 140, 0)');
+            ctx.fillStyle = auraGrad;
+            ctx.beginPath();
+            ctx.arc(0, 0, 256, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Teal aurora rings
+            for (let i = 0; i < 5; i++) {
+                const radius = 100 + i * 30;
+                const opacity = 0.1 + Math.sin(time * 0.5 + i) * 0.05;
+                ctx.beginPath();
+                ctx.arc(0, 0, radius, 0, Math.PI * 2);
+                ctx.strokeStyle = `rgba(0, 180, 180, ${opacity})`;
+                ctx.lineWidth = 2;
+                ctx.stroke();
+            }
+            
+            // Main wormhole body - brownish hue with gray clouds
+            const cloudGrad = ctx.createRadialGradient(0, 0, 20, 0, 0, 120);
+            cloudGrad.addColorStop(0, 'rgba(180, 160, 140, 0.8)');
+            cloudGrad.addColorStop(0.3, 'rgba(140, 120, 100, 0.6)');
+            cloudGrad.addColorStop(0.6, 'rgba(100, 90, 80, 0.4)');
+            cloudGrad.addColorStop(1, 'rgba(60, 50, 40, 0.2)');
+            ctx.fillStyle = cloudGrad;
+            ctx.beginPath();
+            ctx.arc(0, 0, 120, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Well-defined black lens in the center
+            const lensGrad = ctx.createRadialGradient(0, 0, 0, 0, 0, 35);
+            lensGrad.addColorStop(0, 'rgba(10, 10, 15, 0.95)');
+            lensGrad.addColorStop(0.5, 'rgba(20, 20, 25, 0.8)');
+            lensGrad.addColorStop(1, 'rgba(40, 35, 30, 0.4)');
+            ctx.fillStyle = lensGrad;
+            ctx.beginPath();
+            ctx.arc(0, 0, 35, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Black spot in the light gray cloud
+            for (let i = 0; i < 5; i++) {
+                const angle = (i / 5) * Math.PI * 2 + time * 0.15;
+                const distance = 25 + Math.sin(time * 0.3 + i) * 15;
+                const x = Math.cos(angle) * distance;
+                const y = Math.sin(angle) * distance;
+                const size = 12 + Math.sin(time * 0.5 + i * 0.7) * 6;
+                
+                ctx.beginPath();
+                ctx.arc(x, y, size, 0, Math.PI * 2);
+                ctx.fillStyle = 'rgba(15, 15, 20, 0.7)';
+                ctx.fill();
+            }
+            
+            // White/light gray cloud details
+            for (let i = 0; i < 8; i++) {
+                const angle = (i / 8) * Math.PI * 2 + time * 0.1;
+                const distance = 40 + Math.sin(time * 0.4 + i) * 25;
+                const x = Math.cos(angle) * distance;
+                const y = Math.sin(angle) * distance;
+                const size = 8 + Math.sin(time * 0.6 + i) * 4;
+                
+                ctx.beginPath();
+                ctx.arc(x, y, size, 0, Math.PI * 2);
+                ctx.fillStyle = 'rgba(200, 190, 180, 0.3)';
+                ctx.fill();
+            }
+            
+            // Central bright area around the lens
+            const centerGrad = ctx.createRadialGradient(0, 0, 35, 0, 0, 60);
+            centerGrad.addColorStop(0, 'rgba(180, 170, 160, 0.3)');
+            centerGrad.addColorStop(1, 'rgba(140, 130, 120, 0)');
+            ctx.fillStyle = centerGrad;
+            ctx.beginPath();
+            ctx.arc(0, 0, 60, 0, Math.PI * 2);
+            ctx.fill();
+            
+            ctx.restore();
+        }
+        
+        function animate() {
+            time += 0.016;
+            drawC2Wormhole();
+            requestAnimationFrame(animate);
+        }
+        
+        function downloadPNG() {
+            const link = document.createElement('a');
+            link.download = 'c2_wormhole_512x512.png';
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+        }
+        
+        function toggleAnimation() {
+            animationEnabled = !animationEnabled;
+        }
+        
+        // Start animation loop
+        animate();
+    </script>
+</body>
+</html>

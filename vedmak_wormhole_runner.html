@@ -1,0 +1,640 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VEDMAC Wormhole Runner</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            background: #000;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            font-family: 'Courier New', monospace;
+            overflow: hidden;
+        }
+        #gameCanvas {
+            border: 2px solid #333;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="gameCanvas"></canvas>
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // Game dimensions
+        const GAME_WIDTH = 400;
+        const GAME_HEIGHT = 600;
+        canvas.width = GAME_WIDTH;
+        canvas.height = GAME_HEIGHT;
+
+        // Game state
+        let gameState = 'menu'; // menu, playing, gameover
+        let score = 0;
+        let highScore = 0;
+        let frameCount = 0;
+
+        // Vedmak (player)
+        const vedmak = {
+            x: 80,
+            y: GAME_HEIGHT / 2,
+            width: 60,
+            height: 30,
+            velocity: 0,
+            gravity: 0.25,
+            flapStrength: -4.6,
+            maxVelocity: 8,
+            rotation: 0
+        };
+
+        // Pillars and wormholes
+        let pillars = [];
+        const pillarWidth = 60;
+        const gapSize = 160;
+        const pillarSpeed = 2;
+        const pillarSpacing = 350;
+
+        // Ripple effects tied to pillars
+        let pillarRipples = [];
+
+        // Stars background
+        let stars = [];
+        for (let i = 0; i < 100; i++) {
+            stars.push({
+                x: Math.random() * GAME_WIDTH,
+                y: Math.random() * GAME_HEIGHT,
+                size: Math.random() * 2 + 0.5,
+                speed: Math.random() * 0.5 + 0.1,
+                brightness: Math.random()
+            });
+        }
+
+        // Load Vedmak image
+        const vedmakImage = new Image();
+        vedmakImage.src = 'vedmak.png';
+        let vedmakImageLoaded = false;
+        vedmakImage.onload = () => {
+            vedmakImageLoaded = true;
+            // Set the vedmak dimensions based on the image aspect ratio
+            const aspectRatio = vedmakImage.width / vedmakImage.height;
+            vedmak.height = 40;
+            vedmak.width = vedmak.height * aspectRatio;
+        };
+
+        // Load Flygd logo
+        const flygdImage = new Image();
+        flygdImage.src = 'flygd.png';
+        let flygdImageLoaded = false;
+        flygdImage.onload = () => {
+            flygdImageLoaded = true;
+        };
+
+        // Load end screen images
+        const endScreenImages = [];
+        const endScreenLoaded = [false, false, false];
+        let selectedEndScreen = 0;
+
+        for (let i = 1; i <= 3; i++) {
+            endScreenImages[i - 1] = new Image();
+            endScreenImages[i - 1].src = `end-screen${i}.png`;
+            endScreenImages[i - 1].onload = () => {
+                endScreenLoaded[i - 1] = true;
+            };
+        }
+
+        function pickRandomEndScreen() {
+            selectedEndScreen = Math.floor(Math.random() * 3);
+        }
+
+        // Load background images
+        const backgroundImages = {};
+        const backgroundLoaded = { 1: false, 2: false, 3: false, 4: false, 5: false, 6: false };
+        let currentBackgroundClass = 1;
+
+        for (let i = 1; i <= 6; i++) {
+            backgroundImages[i] = new Image();
+            backgroundImages[i].src = `c${i}-background.png`;
+            backgroundImages[i].onload = () => {
+                backgroundLoaded[i] = true;
+            };
+        }
+
+        // Particle system
+        let particles = [];
+
+        // Load wormhole images
+        const wormholeImages = {};
+        const wormholeImageLoaded = { 1: false, 2: false, 3: false, 4: false, 5: false, 6: false };
+        const wormholeSizes = { 1: 240, 2: 240, 3: 240, 4: 240, 5: 240, 6: 240 }; // Target display size for each class
+
+        for (let i = 1; i <= 6; i++) {
+            wormholeImages[i] = new Image();
+            wormholeImages[i].src = `c${i}.png`;
+            wormholeImages[i].onload = () => {
+                wormholeImageLoaded[i] = true;
+            };
+        }
+
+        // Wormhole class colors (fallback for procedural drawing)
+        const wormholeColors = {
+            1: { main: '#44aacc', glow: '#00b4b4' },
+            2: { main: '#aa8866', glow: '#886644' },
+            3: { main: '#cc4444', glow: '#aa2222' },
+            4: { main: '#cc6633', glow: '#aa4411' },
+            5: { main: '#cc6633', glow: '#aa4411' },
+            6: { main: '#ff4400', glow: '#cc2200' }
+        };
+
+        // Initialize pillars
+        function initPillars() {
+            pillars = [];
+            for (let i = 0; i < 4; i++) {
+                const x = GAME_WIDTH + i * pillarSpacing;
+                const gapY = Math.random() * (GAME_HEIGHT - gapSize - 100) + 50;
+                const wormholeClass = Math.floor(Math.random() * 6) + 1;
+                pillars.push({
+                    x: x,
+                    gapY: gapY,
+                    wormholeClass: wormholeClass,
+                    passed: false,
+                    rippled: false,
+                    rippleRadius: 0,
+                    rippleAlpha: 0
+                });
+            }
+        }
+
+        // Reset game
+        function resetGame() {
+            vedmak.y = GAME_HEIGHT / 2;
+            vedmak.velocity = 0;
+            vedmak.rotation = 0;
+            score = 0;
+            frameCount = 0;
+            particles = [];
+            initPillars();
+            pickRandomEndScreen();
+        }
+
+        // Flap
+        function flap() {
+            if (gameState === 'menu') {
+                gameState = 'playing';
+                resetGame();
+                vedmak.velocity = vedmak.flapStrength;
+            } else if (gameState === 'playing') {
+                vedmak.velocity = vedmak.flapStrength;
+            } else if (gameState === 'gameover') {
+                gameState = 'menu';
+            }
+        }
+
+        // Input handling
+        canvas.addEventListener('click', flap);
+        document.addEventListener('keydown', (e) => {
+            if (e.code === 'Space' || e.code === 'ArrowUp') {
+                e.preventDefault();
+                flap();
+            }
+        });
+
+        // Draw Vedmak
+        function drawVedmak(x, y, rotation) {
+            ctx.save();
+            ctx.translate(x, y);
+            ctx.rotate(rotation);
+
+            if (vedmakImageLoaded) {
+                // Draw the actual image, centered on the ship's position
+                ctx.drawImage(vedmakImage, -vedmak.width / 2, -vedmak.height / 2, vedmak.width, vedmak.height);
+            } else {
+                // Fallback: draw the procedural ship while image loads
+                ctx.beginPath();
+                ctx.moveTo(-30, 0);
+                ctx.lineTo(-20, -8);
+                ctx.lineTo(20, -10);
+                ctx.lineTo(30, -5);
+                ctx.lineTo(30, 5);
+                ctx.lineTo(20, 10);
+                ctx.lineTo(-20, 8);
+                ctx.lineTo(-30, 0);
+                ctx.closePath();
+
+                const hullGrad = ctx.createLinearGradient(0, -10, 0, 10);
+                hullGrad.addColorStop(0, '#2a2a30');
+                hullGrad.addColorStop(0.5, '#1a1a1e');
+                hullGrad.addColorStop(1, '#2a2a30');
+                ctx.fillStyle = hullGrad;
+                ctx.fill();
+                ctx.strokeStyle = '#0e0e12';
+                ctx.lineWidth = 1;
+                ctx.stroke();
+
+                // Red glowing panels
+                ctx.fillStyle = 'rgba(255, 68, 34, 0.8)';
+                ctx.fillRect(-15, -9, 8, 3);
+                ctx.fillRect(-5, -9, 8, 3);
+                ctx.fillRect(5, -9, 8, 3);
+
+                // Engine glow
+                const engineGlow = 0.5 + Math.sin(frameCount * 0.1) * 0.3;
+                ctx.shadowColor = '#ff4400';
+                ctx.shadowBlur = 10 * engineGlow;
+                ctx.beginPath();
+                ctx.arc(25, 0, 4, 0, Math.PI * 2);
+                ctx.fillStyle = `rgba(255, 100, 50, ${engineGlow})`;
+                ctx.fill();
+                ctx.shadowBlur = 0;
+
+                // Blue exhaust
+                ctx.beginPath();
+                ctx.moveTo(28, -3);
+                ctx.lineTo(35 + Math.random() * 5, -2);
+                ctx.lineTo(35 + Math.random() * 5, 2);
+                ctx.lineTo(28, 3);
+                ctx.closePath();
+                ctx.fillStyle = 'rgba(68, 136, 255, 0.6)';
+                ctx.fill();
+            }
+
+            ctx.restore();
+        }
+
+        // Draw wormhole
+        function drawWormhole(x, y, size, wormholeClass) {
+            const colors = wormholeColors[wormholeClass];
+            const pulse = 0.8 + Math.sin(frameCount * 0.05) * 0.2;
+
+            // Use image if loaded, otherwise fall back to procedural drawing
+            if (wormholeImageLoaded[wormholeClass] && wormholeImages[wormholeClass]) {
+                const img = wormholeImages[wormholeClass];
+                const displaySize = wormholeSizes[wormholeClass];
+                ctx.drawImage(img, x - displaySize / 2, y - displaySize / 2, displaySize, displaySize);
+            } else {
+                // Procedural fallback
+                ctx.shadowColor = colors.glow;
+                ctx.shadowBlur = 20 * pulse;
+
+                // Main wormhole body
+                const grad = ctx.createRadialGradient(x, y, 0, x, y, size);
+                grad.addColorStop(0, 'rgba(200, 200, 220, 0.9)');
+                grad.addColorStop(0.3, colors.main);
+                grad.addColorStop(0.7, colors.glow);
+                grad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+
+                ctx.beginPath();
+                ctx.arc(x, y, size, 0, Math.PI * 2);
+                ctx.fillStyle = grad;
+                ctx.fill();
+
+                // Inner swirl
+                ctx.beginPath();
+                ctx.arc(x, y, size * 0.5, 0, Math.PI * 2);
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+                ctx.fill();
+
+                // Center
+                ctx.beginPath();
+                ctx.arc(x, y, size * 0.2, 0, Math.PI * 2);
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+                ctx.fill();
+
+                ctx.shadowBlur = 0;
+            }
+        }
+
+        // Draw pillar (invisible, but collision still works)
+        function drawPillar(pillar) {
+            const topHeight = pillar.gapY;
+            const bottomY = pillar.gapY + gapSize;
+            const bottomHeight = GAME_HEIGHT - bottomY;
+
+            // Draw pillars fully transparent (invisible)
+            ctx.globalAlpha = 0.0;
+
+            // Top pillar
+            const topGrad = ctx.createLinearGradient(pillar.x, 0, pillar.x + pillarWidth, 0);
+            topGrad.addColorStop(0, '#1a1a2e');
+            topGrad.addColorStop(0.5, '#2a2a4e');
+            topGrad.addColorStop(1, '#1a1a2e');
+
+            ctx.fillStyle = topGrad;
+            ctx.fillRect(pillar.x, 0, pillarWidth, topHeight);
+
+            // Top pillar edge
+            ctx.fillStyle = '#3a3a5e';
+            ctx.fillRect(pillar.x - 5, topHeight - 10, pillarWidth + 10, 10);
+
+            // Bottom pillar
+            const bottomGrad = ctx.createLinearGradient(pillar.x, 0, pillar.x + pillarWidth, 0);
+            bottomGrad.addColorStop(0, '#1a1a2e');
+            bottomGrad.addColorStop(0.5, '#2a2a4e');
+            bottomGrad.addColorStop(1, '#1a1a2e');
+
+            ctx.fillStyle = bottomGrad;
+            ctx.fillRect(pillar.x, bottomY, pillarWidth, bottomHeight);
+
+            // Bottom pillar edge
+            ctx.fillStyle = '#3a3a5e';
+            ctx.fillRect(pillar.x - 5, bottomY, pillarWidth + 10, 10);
+
+            // Reset alpha for wormhole (full opacity)
+            ctx.globalAlpha = 1.0;
+
+            // Draw wormhole in the gap
+            const wormholeX = pillar.x + pillarWidth / 2;
+            const wormholeY = pillar.gapY + gapSize / 2;
+            drawWormhole(wormholeX, wormholeY, 25, pillar.wormholeClass);
+
+            // Draw ripple if active
+            if (pillar.rippled && pillar.rippleAlpha > 0) {
+                ctx.beginPath();
+                ctx.arc(wormholeX, wormholeY, pillar.rippleRadius, 0, Math.PI * 2);
+                ctx.strokeStyle = `rgba(255, 255, 100, ${pillar.rippleAlpha})`;
+                ctx.lineWidth = 4 * pillar.rippleAlpha;
+                ctx.stroke();
+            }
+
+            // Reset alpha for everything else
+            ctx.globalAlpha = 1.0;
+        }
+
+        // Draw stars
+        function drawStars() {
+            stars.forEach(star => {
+                const brightness = 0.3 + Math.sin(frameCount * 0.02 + star.brightness * 10) * 0.3;
+                ctx.fillStyle = `rgba(255, 255, 255, ${brightness})`;
+                ctx.beginPath();
+                ctx.arc(star.x, star.y, star.size, 0, Math.PI * 2);
+                ctx.fill();
+            });
+        }
+
+        // Update stars
+        function updateStars() {
+            stars.forEach(star => {
+                star.x -= star.speed;
+                if (star.x < 0) {
+                    star.x = GAME_WIDTH;
+                    star.y = Math.random() * GAME_HEIGHT;
+                }
+            });
+        }
+
+        // Draw particles
+        function drawParticles() {
+            particles.forEach(particle => {
+                ctx.fillStyle = `rgba(${particle.r}, ${particle.g}, ${particle.b}, ${particle.alpha})`;
+                ctx.beginPath();
+                ctx.arc(particle.x, particle.y, particle.size, 0, Math.PI * 2);
+                ctx.fill();
+            });
+        }
+
+        // Update particles
+        function updateParticles() {
+            particles = particles.filter(p => p.alpha > 0);
+            particles.forEach(particle => {
+                particle.x += particle.vx;
+                particle.y += particle.vy;
+                particle.alpha -= 0.02;
+                particle.size *= 0.98;
+            });
+        }
+
+        // Add explosion particles
+        function addExplosion(x, y) {
+            for (let i = 0; i < 20; i++) {
+                const angle = Math.random() * Math.PI * 2;
+                const speed = Math.random() * 3 + 1;
+                particles.push({
+                    x: x,
+                    y: y,
+                    vx: Math.cos(angle) * speed,
+                    vy: Math.sin(angle) * speed,
+                    size: Math.random() * 3 + 1,
+                    alpha: 1,
+                    r: Math.random() > 0.5 ? 255 : 100,
+                    g: Math.random() > 0.5 ? 100 : 200,
+                    b: Math.random() > 0.5 ? 50 : 255
+                });
+            }
+        }
+
+        // Check collision
+        function checkCollision() {
+            // Ground and ceiling
+            if (vedmak.y + vedmak.height / 2 > GAME_HEIGHT || vedmak.y - vedmak.height / 2 < 0) {
+                return true;
+            }
+
+            // Pillars - use exact hitbox matching visual size
+            const vedmakLeft = vedmak.x - vedmak.width / 2;
+            const vedmakRight = vedmak.x + vedmak.width / 2;
+            const vedmakTop = vedmak.y - vedmak.height / 2;
+            const vedmakBottom = vedmak.y + vedmak.height / 2;
+
+            for (let pillar of pillars) {
+                // Check if Vedmak is horizontally overlapping with pillar
+                if (vedmakRight > pillar.x && vedmakLeft < pillar.x + pillarWidth) {
+                    // Check if Vedmak is outside the gap (hitting top or bottom pillar)
+                    if (vedmakTop < pillar.gapY || vedmakBottom > pillar.gapY + gapSize) {
+                        return true;
+                    }
+                }
+            }
+
+            return false;
+        }
+
+        // Draw score
+        function drawScore() {
+            ctx.fillStyle = '#ffffff';
+            ctx.font = 'bold 24px Courier New';
+            ctx.textAlign = 'center';
+            ctx.fillText(score, GAME_WIDTH / 2, 50);
+
+            if (highScore > 0) {
+                ctx.font = '14px Courier New';
+                ctx.fillStyle = '#888888';
+                ctx.fillText(`HI: ${highScore}`, GAME_WIDTH / 2, 70);
+            }
+        }
+
+        // Draw menu
+        function drawMenu() {
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+            ctx.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
+
+            ctx.fillStyle = '#cc4444';
+            ctx.font = 'bold 32px Courier New';
+            ctx.textAlign = 'center';
+            ctx.fillText('FLAPPY VED', GAME_WIDTH / 2, GAME_HEIGHT / 2 - 100);
+
+            ctx.fillStyle = '#888888';
+            ctx.font = '16px Courier New';
+            ctx.fillText('FLYGD PRESENTS', GAME_WIDTH / 2, GAME_HEIGHT / 2 - 65);
+
+            // Draw Flygd logo below the text
+            if (flygdImageLoaded) {
+                const logoWidth = 150;
+                const logoHeight = logoWidth * (flygdImage.height / flygdImage.width);
+                ctx.drawImage(flygdImage, GAME_WIDTH / 2 - logoWidth / 2, GAME_HEIGHT / 2 - 30, logoWidth, logoHeight);
+            }
+
+            const pulse = 0.5 + Math.sin(frameCount * 0.05) * 0.5;
+            ctx.fillStyle = `rgba(255, 255, 255, ${pulse})`;
+            ctx.font = '14px Courier New';
+            ctx.fillText('CLICK OR PRESS SPACE TO START', GAME_WIDTH / 2, GAME_HEIGHT / 2 + 100);
+        }
+
+        // Draw game over
+        function drawGameOver() {
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+            ctx.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
+
+            // Draw random end screen image
+            if (endScreenLoaded[selectedEndScreen]) {
+                const imgWidth = 300;
+                const imgHeight = imgWidth * (endScreenImages[selectedEndScreen].height / endScreenImages[selectedEndScreen].width);
+                ctx.drawImage(endScreenImages[selectedEndScreen], GAME_WIDTH / 2 - imgWidth / 2, GAME_HEIGHT / 2 - 100, imgWidth, imgHeight);
+            }
+
+            ctx.fillStyle = '#ffffff';
+            ctx.font = '20px Courier New';
+            ctx.textAlign = 'center';
+            ctx.fillText(`SCORE: ${score}`, GAME_WIDTH / 2, GAME_HEIGHT / 2 + 80);
+
+            if (score >= highScore && score > 0) {
+                ctx.fillStyle = '#ffcc00';
+                ctx.font = '14px Courier New';
+                ctx.fillText('NEW HIGH SCORE!', GAME_WIDTH / 2, GAME_HEIGHT / 2 + 105);
+            }
+
+            const pulse = 0.5 + Math.sin(frameCount * 0.05) * 0.5;
+            ctx.fillStyle = `rgba(255, 255, 255, ${pulse})`;
+            ctx.font = '14px Courier New';
+            ctx.fillText('CLICK TO CONTINUE', GAME_WIDTH / 2, GAME_HEIGHT / 2 + 140);
+        }
+
+        // Main game loop
+        function gameLoop() {
+            // Draw background (lowest layer)
+            if (backgroundLoaded[currentBackgroundClass]) {
+                ctx.drawImage(backgroundImages[currentBackgroundClass], 0, 0, GAME_WIDTH, GAME_HEIGHT);
+            } else {
+                // Fallback to dark blue background
+                ctx.fillStyle = '#0a0a12';
+                ctx.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
+            }
+
+            // Update and draw stars
+            updateStars();
+            drawStars();
+
+            if (gameState === 'playing') {
+                frameCount++;
+
+                // Update Vedmak
+                vedmak.velocity += vedmak.gravity;
+                vedmak.velocity = Math.max(Math.min(vedmak.velocity, vedmak.maxVelocity), -vedmak.maxVelocity);
+                vedmak.y += vedmak.velocity;
+
+                // Calculate rotation based on velocity
+                vedmak.rotation = Math.max(Math.min(vedmak.velocity * 0.05, 0.5), -0.5);
+
+                // Update pillars
+                pillars.forEach(pillar => {
+                    pillar.x -= pillarSpeed;
+
+                    // Animate ripple if triggered
+                    if (pillar.rippled) {
+                        pillar.rippleRadius += 3;
+                        pillar.rippleAlpha = 1 - (pillar.rippleRadius / 150);
+                        if (pillar.rippleAlpha <= 0) {
+                            pillar.rippled = false;
+                        }
+                    }
+
+                    // Score
+                    if (!pillar.passed && pillar.x + pillarWidth < vedmak.x) {
+                        pillar.passed = true;
+                        score++;
+                        // Swap background to match the wormhole class we just passed
+                        currentBackgroundClass = pillar.wormholeClass;
+                        // Start ripple animation on this pillar
+                        pillar.rippled = true;
+                        pillar.rippleRadius = 10;
+                        pillar.rippleAlpha = 1;
+                    }
+                });
+
+                // Remove off-screen pillars and add new ones
+                if (pillars[0].x + pillarWidth < 0) {
+                    pillars.shift();
+                    const lastPillar = pillars[pillars.length - 1];
+                    const gapY = Math.random() * (GAME_HEIGHT - gapSize - 100) + 50;
+                    const wormholeClass = Math.floor(Math.random() * 6) + 1;
+                    pillars.push({
+                        x: lastPillar.x + pillarSpacing,
+                        gapY: gapY,
+                        wormholeClass: wormholeClass,
+                        passed: false
+                    });
+                }
+
+                // Update particles
+                updateParticles();
+
+                // Check collision
+                if (checkCollision()) {
+                    gameState = 'gameover';
+                    if (score > highScore) {
+                        highScore = score;
+                    }
+                    addExplosion(vedmak.x, vedmak.y);
+                }
+            }
+
+            // Draw pillars
+            pillars.forEach(pillar => drawPillar(pillar));
+
+            // Draw particles
+            drawParticles();
+
+            // Draw Vedmak
+            if (gameState !== 'gameover' || Math.floor(frameCount / 5) % 2 === 0) {
+                drawVedmak(vedmak.x, vedmak.y, vedmak.rotation);
+            }
+
+            // Draw score
+            if (gameState === 'playing') {
+                drawScore();
+            }
+
+            // Draw UI
+            if (gameState === 'menu') {
+                drawMenu();
+            } else if (gameState === 'gameover') {
+                drawScore();
+                drawGameOver();
+            }
+
+            requestAnimationFrame(gameLoop);
+        }
+
+        // Start the game
+        initPillars();
+        gameLoop();
+    </script>
+</body>
+</html>
